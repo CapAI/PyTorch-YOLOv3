@@ -1,4 +1,4 @@
 classes= 1
-train=data/custom/train.txt
-valid=data/custom/valid.txt
+train=/media/jetze/Elements/MarineNet-45k/train.txt
+valid=/media/jetze/Elements/MarineNet-45k/valid.txt
 names=data/custom/classes.names

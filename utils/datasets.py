@@ -11,7 +11,6 @@ from utils.augmentations import horisontal_flip
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 
-
 def pad_to_square(img, pad_value):
     c, h, w = img.shape
     dim_diff = np.abs(h - w)
@@ -62,7 +61,7 @@ class ListDataset(Dataset):
             self.img_files = file.readlines()
 
         self.label_files = [
-            path.replace("images", "labels").replace(".png", ".txt").replace(".jpg", ".txt")
+            path.replace("image_yolo","label_yolo").replace("images", "labels").replace(".png", ".txt").replace(".jpg", ".txt")
             for path in self.img_files
         ]
         self.img_size = img_size
@@ -79,6 +78,10 @@ class ListDataset(Dataset):
         # ---------
         #  Image
         # ---------
+        # my_trans = transforms.Compose([
+        #     transforms.CenterCrop(10),
+        #     transforms.ToTensor(),
+        #     ])
 
         img_path = self.img_files[index % len(self.img_files)].rstrip()
 
@@ -128,7 +131,7 @@ class ListDataset(Dataset):
         if self.augment:
             if np.random.random() < 0.5:
                 img, targets = horisontal_flip(img, targets)
-
+        # img = my_trans(img)
         return img_path, img, targets
 
     def collate_fn(self, batch):

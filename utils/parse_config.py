@@ -17,7 +17,6 @@ def parse_model_config(path):
             key, value = line.split("=")
             value = value.strip()
             module_defs[-1][key.rstrip()] = value.strip()
-
     return module_defs
 
 def parse_data_config(path):
