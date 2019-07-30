@@ -60,7 +60,7 @@ if __name__ == "__main__":
     )
 
     classes = load_classes(opt.class_path)  # Extracts class labels from file
-
+    print(classes[8])
     Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
     imgs = []  # Stores image paths
@@ -75,7 +75,9 @@ if __name__ == "__main__":
         # Get detections
         with torch.no_grad():
             detections = model(input_imgs)
+            print('model output', detections[0].shape)
             detections = non_max_suppression(detections, opt.conf_thres, opt.nms_thres)
+            print('non_max_supr', detections[0].shape, detections)
 
         # Log progress
         current_time = time.time()
@@ -106,7 +108,9 @@ if __name__ == "__main__":
         # Draw bounding boxes and labels of detections
         if detections is not None:
             # Rescale boxes to original image
+            # print(detections)
             detections = rescale_boxes(detections, opt.img_size, img.shape[:2])
+            print('rescaled ', detections)
             unique_labels = detections[:, -1].cpu().unique()
             n_cls_preds = len(unique_labels)
             bbox_colors = random.sample(colors, n_cls_preds)
