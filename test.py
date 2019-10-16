@@ -125,19 +125,17 @@ if __name__ == "__main__":
     for i, c in enumerate(ap_class):
         print(f"+ Class '{c}' ({class_names[c]}) - AP: {AP[i]}")
         mlflow.log_metric(f'AP {class_names[c]}', AP[i])
+        mlflow.log_metric(f'precision {class_names[c]}', precision[i])
+        mlflow.log_metric(f'recall {class_names[c]}', recall[i])
+        mlflow.log_metric(f'f1 {class_names[c]}', f1[i])
+        
 
     print(f"mAP: {mAP}")
     
     print(f'precision: {precision}')
     print(f'recall: {recall}')
     
-    
-    mlflow.log_metrics({
-        'mAP': mAP,
-        'precision': precision,
-        'recall': recall,
-        'f1': f1
-    })
+    mlflow.log_metric('mAP', mAP)
 #     print(f'TP : {true_positives}')
 #     print(f'pred_scores: {pred_scores}')
 #     print(f'pred_labels: {pred_labels}')
