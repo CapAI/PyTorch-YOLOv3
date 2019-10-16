@@ -1,4 +1,11 @@
-md5: bba8e13b5666409c18e07872b2857a19
+md5: a0f66c01c1623a5e70ddcbee9e3439d8
+locked: true
+deps:
+- path: MarineNet
+  repo:
+    url: https://github.com/CapAI/labeling-app/
+    rev: dev
+    rev_lock: d993a3b010f1230f6d564f466f04932321a3ec66
 outs:
 - md5: 49f74f54a6cc071f85ad0edc9741d856.dir
   path: MarineNet
