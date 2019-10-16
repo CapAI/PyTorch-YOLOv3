@@ -124,10 +124,10 @@ if __name__ == "__main__":
     print("Average Precisions:")
     for i, c in enumerate(ap_class):
         print(f"+ Class '{c}' ({class_names[c]}) - AP: {AP[i]}")
-        mlflow.log_metric(f'AP {class_names[c]}', AP[i])
-        mlflow.log_metric(f'precision {class_names[c]}', precision[i])
-        mlflow.log_metric(f'recall {class_names[c]}', recall[i])
-        mlflow.log_metric(f'f1 {class_names[c]}', f1[i])
+        mlflow.log_metric(f'AP_{class_names[c]}', AP[i])
+        mlflow.log_metric(f'precision_{class_names[c]}', precision[i])
+        mlflow.log_metric(f'recall_{class_names[c]}', recall[i])
+        mlflow.log_metric(f'f1_{class_names[c]}', f1[i])
         
 
     print(f"mAP: {mAP}")
