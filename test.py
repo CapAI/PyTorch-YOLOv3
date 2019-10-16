@@ -19,6 +19,8 @@ from torchvision import transforms
 from torch.autograd import Variable
 import torch.optim as optim
 
+from mlflow
+import git
 
 def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size):
     model.eval()
@@ -36,6 +38,9 @@ def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size
     for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecting objects")):
 
         # Extract labels
+#         print('targets: \r\n', targets[:,1])
+        if opt.model_def=='configyolov3.cfg':
+            targets[:,1] = 8 # target boat in coco yolo labels
         labels += targets[:, 1].tolist()
         # Rescale target
         targets[:, 2:] = xywh2xyxy(targets[:, 2:])
@@ -46,14 +51,18 @@ def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size
         with torch.no_grad():
             outputs = model(imgs)
             outputs = non_max_suppression(outputs, conf_thres=conf_thres, nms_thres=nms_thres)
-
+#             print('outputs: \r\n', outputs)
+#             print('targets: \r\n', targets)
         sample_metrics += get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
 
     # Concatenate sample statistics
     true_positives, pred_scores, pred_labels = [np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
     precision, recall, AP, f1, ap_class = ap_per_class(true_positives, pred_scores, pred_labels, labels)
 
-    return precision, recall, AP, f1, ap_class
+    return precision, recall, AP, f1, ap_class #, true_positives, pred_scores, pred_labels
+
+def logMLflow():
+    
 
 
 if __name__ == "__main__":
@@ -68,13 +77,20 @@ if __name__ == "__main__":
     parser.add_argument("--nms_thres", type=float, default=0.5, help="iou thresshold for non-maximum suppression")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=416, help="size of each image dimension")
+    parser.add_argument("--set", type=str, default='valid', help="use {train, valid, test} set")
     opt = parser.parse_args()
     print(opt)
-
+    
+    mlflow.log_params(vars(opt))
+    
+    repo = git.Repo(search_parent_directories=True)
+    sha = repo.head.object.hexsha
+    mlflow.log_param({'git hexsha': sha})
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     data_config = parse_data_config(opt.data_config)
-    valid_path = data_config["valid"]
+    valid_path = data_config[opt.set]
     class_names = load_classes(data_config["names"])
 
     # Initiate model
@@ -97,9 +113,27 @@ if __name__ == "__main__":
         img_size=opt.img_size,
         batch_size=8,
     )
-
+    mAP = AP.mean()
+    
+    
     print("Average Precisions:")
     for i, c in enumerate(ap_class):
         print(f"+ Class '{c}' ({class_names[c]}) - AP: {AP[i]}")
+        mlflow.log_metric({f'AP {class_names[c]}':AP[i]})
 
-    print(f"mAP: {AP.mean()}")
+    print(f"mAP: {mAP}")
+    
+    print(f'precision: {precision}')
+    print(f'recall: {recall}')
+    
+    
+    mlflow.log_metrics({
+        'mAP': mAP,
+        'AP': AP,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1
+    })
+#     print(f'TP : {true_positives}')
+#     print(f'pred_scores: {pred_scores}')
+#     print(f'pred_labels: {pred_labels}')

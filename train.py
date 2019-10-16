@@ -34,11 +34,11 @@ if __name__ == "__main__":
     parser.add_argument("--model_def", type=str, default="config/yolov3.cfg", help="path to model definition file")
     parser.add_argument("--data_config", type=str, default="config/coco.data", help="path to data config file")
     parser.add_argument("--pretrained_weights", type=str, help="if specified starts from checkpoint model")
-    parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
+    parser.add_argument("--n_cpu", type=int, default=7, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=416, help="size of each image dimension")
-    parser.add_argument("--checkpoint_interval", type=int, default=1, help="interval between saving model weights")
+    parser.add_argument("--checkpoint_interval", type=int, default=10, help="interval between saving model weights")
     parser.add_argument("--evaluation_interval", type=int, default=1, help="interval evaluations on validation set")
-    parser.add_argument("--compute_map", default=False, help="if True computes mAP every tenth batch")
+    parser.add_argument("--compute_map", default=True, help="if True computes mAP every tenth batch")
     parser.add_argument("--multiscale_training", default=True, help="allow for multi-scale training")
     opt = parser.parse_args()
     print(opt)
@@ -57,6 +57,15 @@ if __name__ == "__main__":
     valid_path = data_config["valid"]
     class_names = load_classes(data_config["names"])
 
+    MEANS = None
+    STDS = None
+    if MEANS is None or STDS is None:
+        get_stats = MeanStd(train_path=train_path)
+        MEANS, STDS = get_stats.get_means_stds()
+        print(f'means: {MEANS}')
+        print(f'stds: {STDS}')
+    
+    
     # Initiate model
     model = Darknet(opt.model_def).to(device)
     model.apply(weights_init_normal)
@@ -69,7 +78,8 @@ if __name__ == "__main__":
             model.load_darknet_weights(opt.pretrained_weights)
 
     # Get dataloader
-    dataset = ListDataset(train_path, augment=True, multiscale=opt.multiscale_training)
+    dataset = ListDataset(train_path, augment=True, multiscale=opt.multiscale_training, means=MEANS, stds=STDS)
+    
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=opt.batch_size,
@@ -172,6 +182,12 @@ if __name__ == "__main__":
             ]
             logger.list_of_scalars_summary(evaluation_metrics, epoch)
 
+            writer.add_scalars('eval_metrics', 
+                            {"val_precision": precision.mean(),
+                            "val_recall": recall.mean(),
+                            "val_mAP": AP.mean(),
+                            "val_f1": f1.mean()}, epoch)
+            
             # Print class APs and mAP
             ap_table = [["Index", "Class name", "AP"]]
             for i, c in enumerate(ap_class):

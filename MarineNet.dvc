@@ -1,0 +1,7 @@
+md5: bba8e13b5666409c18e07872b2857a19
+outs:
+- md5: 49f74f54a6cc071f85ad0edc9741d856.dir
+  path: MarineNet
+  cache: true
+  metric: false
+  persist: false

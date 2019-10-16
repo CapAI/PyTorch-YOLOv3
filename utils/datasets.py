@@ -8,8 +8,10 @@ import torch
 import torch.nn.functional as F
 
 from utils.augmentations import horisontal_flip
-from torch.utils.data import Dataset
-import torchvision.transforms as transforms
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, datasets
+
+from tqdm import tqdm
 
 def pad_to_square(img, pad_value):
     c, h, w = img.shape
@@ -35,28 +37,94 @@ def random_resize(images, min_size=288, max_size=448):
     return images
 
 
+class StatsDataset(Dataset):
+    def __init__(self, list_path, size=416):
+        self.transform = transforms.Compose([
+            # TODO circumvent stretching of image
+            transforms.Resize(size=(size,size)),
+            transforms.ToTensor()
+                ])
+        
+        with open(list_path, "r") as file:
+            self.img_files = file.readlines()
+            
+        self.img_size = size
+        self.batch_count = 0
+    
+    def __getitem__(self, index):
+        img_path = self.img_files[index % len(self.img_files)].rstrip()
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+#         print(img.shape)
+        if len(img.shape) != 3:
+            img = img.unsqueeze(0)
+            img = img.expand((3, img.shape[1:]))
+        return img
+
+    def __len__(self):
+        return len(self.img_files)
+    
+    
+class MeanStd():
+    def __init__(self, train_path, size=416, batch_size=750):
+        self.dataset = StatsDataset(train_path)
+        self.loader = DataLoader(self.dataset, batch_size=batch_size, shuffle=False, num_workers=7)
+        self.pop_mean = []
+        self.pop_std = []
+        
+    def _get_means(self):
+        for inputs in tqdm(self.loader):
+            numpy_image = inputs.numpy()
+            batch_mean = np.mean(numpy_image, axis=(0,2,3))
+            self.pop_mean.append(batch_mean)
+        self.pop_mean = np.array(self.pop_mean).mean(axis=0)
+        
+    def _get_stds(self):
+        # TODO use self.mean to calc std
+        for inputs in tqdm(self.loader):
+            numpy_image = inputs.numpy()
+            batch_std = np.std(numpy_image, axis=(0,2,3))
+            self.pop_std.append(batch_std)
+        self.pop_std = np.array(self.pop_std).mean(axis=0)
+        
+    def get_means_stds(self):
+        self._get_means()
+        self._get_stds()
+        return self.pop_mean, self.pop_std
+
+
 class ImageFolder(Dataset):
-    def __init__(self, folder_path, img_size=416):
+    def __init__(self, folder_path, img_size=416, means=[.5,.5,.5], stds=[.5,.5,.5]):
         self.files = sorted(glob.glob("%s/*.*" % folder_path))
         self.img_size = img_size
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(means, stds)
+        ])
 
     def __getitem__(self, index):
         img_path = self.files[index % len(self.files)]
         # Extract image as PyTorch tensor
-        img = transforms.ToTensor()(Image.open(img_path))
+        # TODO why is there no convert('RGB') in ImageFolder
+        img = Image.open(img_path)
+        img = transform(img).convert('RGB')
         # Pad to square resolution
         img, _ = pad_to_square(img, 0)
         # Resize
         img = resize(img, self.img_size)
-
+    
+        # TRANSFORM
+        
         return img_path, img
 
     def __len__(self):
         return len(self.files)
 
 
+
+        
 class ListDataset(Dataset):
-    def __init__(self, list_path, img_size=416, augment=True, multiscale=True, normalized_labels=True):
+    def __init__(self, list_path, img_size=416, augment=True, multiscale=True, normalized_labels=True, means=[.5,.5,.5], stds=[.5,.5,.5]):
         with open(list_path, "r") as file:
             self.img_files = file.readlines()
 
@@ -72,6 +140,12 @@ class ListDataset(Dataset):
         self.min_size = self.img_size - 3 * 32
         self.max_size = self.img_size + 3 * 32
         self.batch_count = 0
+        self.transform = transforms.Compose([
+#             transforms.ToPILImage(),
+            transforms.transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
+            transforms.ToTensor(),
+            transforms.Normalize(means, stds)
+                                            ])
 
     def __getitem__(self, index):
 
@@ -84,10 +158,11 @@ class ListDataset(Dataset):
         #     ])
 
         img_path = self.img_files[index % len(self.img_files)].rstrip()
-
+        
         # Extract image as PyTorch tensor
-        img = transforms.ToTensor()(Image.open(img_path).convert('RGB'))
-
+        # TODO why is there no convert('RGB') in ImageFolder
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
         # Handle images with less than three channels
         if len(img.shape) != 3:
             img = img.unsqueeze(0)
@@ -128,6 +203,7 @@ class ListDataset(Dataset):
             targets[:, 1:] = boxes
 
         # Apply augmentations
+        # TRANSFORMS
         if self.augment:
             if np.random.random() < 0.5:
                 img, targets = horisontal_flip(img, targets)
