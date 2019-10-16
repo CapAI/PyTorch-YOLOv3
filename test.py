@@ -40,7 +40,7 @@ def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size
 
         # Extract labels
 #         print('targets: \r\n', targets[:,1])
-        if opt.model_def=='configyolov3.cfg':
+        if opt.class_path[-len('coco.names'):]=='coco.names':
             targets[:,1] = 8 # target boat in coco yolo labels
         labels += targets[:, 1].tolist()
         # Rescale target
