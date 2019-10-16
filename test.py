@@ -89,7 +89,7 @@ if __name__ == "__main__":
     mlflow.log_param('git hexsha', sha)
     
     with open('MarineNet.dvc', 'r') as f:
-        dvc = yaml.save_load(f)
+        dvc = yaml.safe_load(f)
     mlflow.log_param('dvc md5', dvc['md5'])
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
