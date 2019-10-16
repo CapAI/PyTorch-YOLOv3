@@ -19,8 +19,9 @@ from torchvision import transforms
 from torch.autograd import Variable
 import torch.optim as optim
 
-from mlflow
+import mlflow
 import git
+import yaml
 
 def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size):
     model.eval()
@@ -61,7 +62,7 @@ def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size
 
     return precision, recall, AP, f1, ap_class #, true_positives, pred_scores, pred_labels
 
-def logMLflow():
+# def logMLflow():
     
 
 
@@ -85,7 +86,11 @@ if __name__ == "__main__":
     
     repo = git.Repo(search_parent_directories=True)
     sha = repo.head.object.hexsha
-    mlflow.log_param({'git hexsha': sha})
+    mlflow.log_param('git hexsha', sha)
+    
+    with open('MarineNet.dvc', 'r') as f:
+        dvc = yaml.load(f)
+    mlflow.log_param('dvc md5', dvc['md5'])
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
