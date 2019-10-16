@@ -89,7 +89,7 @@ if __name__ == "__main__":
     mlflow.log_param('git hexsha', sha)
     
     with open('MarineNet.dvc', 'r') as f:
-        dvc = yaml.load(f)
+        dvc = yaml.save_load(f)
     mlflow.log_param('dvc md5', dvc['md5'])
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     print("Average Precisions:")
     for i, c in enumerate(ap_class):
         print(f"+ Class '{c}' ({class_names[c]}) - AP: {AP[i]}")
-        mlflow.log_metric({f'AP {class_names[c]}':AP[i]})
+        mlflow.log_metric(f'AP {class_names[c]}', AP[i])
 
     print(f"mAP: {mAP}")
     
