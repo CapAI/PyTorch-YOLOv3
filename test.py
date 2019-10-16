@@ -134,7 +134,6 @@ if __name__ == "__main__":
     
     mlflow.log_metrics({
         'mAP': mAP,
-        'AP': AP,
         'precision': precision,
         'recall': recall,
         'f1': f1
