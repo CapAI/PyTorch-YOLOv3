@@ -86,11 +86,11 @@ if __name__ == "__main__":
     
     repo = git.Repo(search_parent_directories=True)
     sha = repo.head.object.hexsha
-    mlflow.log_param('git hexsha', sha)
+    mlflow.log_param('git_hexsha', sha)
     
     with open('MarineNet.dvc', 'r') as f:
         dvc = yaml.safe_load(f)
-    mlflow.log_param('dvc md5', dvc['md5'])
+    mlflow.log_param('dvc_md5', dvc['md5'])
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
