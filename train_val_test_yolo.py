@@ -1,9 +1,6 @@
 from tqdm import tqdm
 import os
 import random
-
-random.seed(359244)
-
 import argparse
 
 
@@ -11,7 +8,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--src', type=str, default='/home/jupyter/PyTorch_YOLOv3/MarineNet/data', help='source directory, that contains folders train/ and test/')
     parser.add_argument('--nval', type=int, default=5000, help='number of images to sample for validation (from the train folder), for reference ntest = 3250')
+    parser.add_argument('--seed', type=int, default=23102019)
     opt = parser.parse_args()
+    
+    random.seed(opt.seed)
     
 #     SRC = os.path.join('/home','jupyter','MarineNet-45k')
     src_img = os.path.join(opt.src, 'train')
