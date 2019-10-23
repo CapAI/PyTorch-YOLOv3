@@ -129,7 +129,7 @@ class ListDataset(Dataset):
             self.img_files = file.readlines()
 
         self.label_files = [
-            path.replace("image_yolo","label_yolo").replace("images", "labels").replace(".png", ".txt").replace(".jpg", ".txt")
+            path.replace("image_yolo","label_yolo").replace("images", "labels").replace("data", "labels").replace(".png", ".txt").replace(".jpg", ".txt")
             for path in self.img_files
         ]
         self.img_size = img_size

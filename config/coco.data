@@ -1,6 +1,7 @@
 classes= 80
 train=data/coco/trainvalno5k.txt
 valid=data/coco/5k.txt
+test=/home/jupyter/MarineNet-45k/test.txt
 names=data/coco.names
 backup=backup/
 eval=coco

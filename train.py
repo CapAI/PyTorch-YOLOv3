@@ -40,16 +40,19 @@ if __name__ == "__main__":
     parser.add_argument("--evaluation_interval", type=int, default=1, help="interval evaluations on validation set")
     parser.add_argument("--compute_map", default=True, help="if True computes mAP every tenth batch")
     parser.add_argument("--multiscale_training", default=True, help="allow for multi-scale training")
+    parser.add_argument("-freeze_pretrained", action='store_true', help="keep first 75 layers fixed, (re)train layers 75-106")
     opt = parser.parse_args()
     print(opt)
 
-    writer = SummaryWriter('Xlogs')
-    logger = Logger("logs")
+    t = round(time.time())
+    
+    writer = SummaryWriter(f'Xlogs/{t}')
+    logger = Logger(f"logs/{t}")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     os.makedirs("output", exist_ok=True)
-    os.makedirs("checkpoints", exist_ok=True)
+    os.makedirs(f"checkpoints/{t}", exist_ok=True)
 
     # Get data configuration
     data_config = parse_data_config(opt.data_config)
@@ -57,8 +60,8 @@ if __name__ == "__main__":
     valid_path = data_config["valid"]
     class_names = load_classes(data_config["names"])
 
-    MEANS = None
-    STDS = None
+    MEANS = [0.48581678, 0.50988996, 0.52099264]
+    STDS = [0.25317615, 0.24736303, 0.26655522]
     if MEANS is None or STDS is None:
         get_stats = MeanStd(train_path=train_path)
         MEANS, STDS = get_stats.get_means_stds()
@@ -69,7 +72,9 @@ if __name__ == "__main__":
     # Initiate model
     model = Darknet(opt.model_def).to(device)
     model.apply(weights_init_normal)
-
+    
+    print(model)
+    
     # If specified we start from checkpoint
     if opt.pretrained_weights:
         if opt.pretrained_weights.endswith(".pth"):
@@ -89,7 +94,22 @@ if __name__ == "__main__":
         collate_fn=dataset.collate_fn,
     )
 
-    optimizer = torch.optim.Adam(model.parameters())
+    
+    if opt.freeze_pretrained:
+        parameters = list()
+        print('length of mod_list: ', len(model.module_list), type(model.module_list))
+        for m, mod in enumerate(model.module_list):
+            if m < 75:
+                for param in mod.parameters():
+                    param.requires_grad_(False)
+            else:
+                parameters.append(mod.parameters())
+    else:
+        parameters = model.parameters()
+
+        #     parameters = list(model.module_list[106].parameters()) + list(model.module_list[105].parameters()) + list(model.module_list[94].parameters()) + list(model.module_list[93].parameters()) + list(model.module_list[82].parameters()) + list(model.module_list[81].parameters())
+    
+    optimizer = torch.optim.Adam(parameters)
 
     metrics = [
         "grid_size",
@@ -196,4 +216,4 @@ if __name__ == "__main__":
             print(f"---- mAP {AP.mean()}")
 
         if epoch % opt.checkpoint_interval == 0:
-            torch.save(model.state_dict(), f"checkpoints/yolov3_ckpt_%d.pth" % epoch)
+            torch.save(model.state_dict(), f"checkpoints/{t}/yolov3_ckpt_%d.pth" % epoch)

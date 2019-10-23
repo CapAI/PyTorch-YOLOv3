@@ -23,7 +23,7 @@ import mlflow
 import git
 import yaml
 
-def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size):
+def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, coco=False):
     model.eval()
 
     # Get dataloader
@@ -40,7 +40,7 @@ def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size
 
         # Extract labels
 #         print('targets: \r\n', targets[:,1])
-        if opt.class_path[-len('coco.names'):]=='coco.names':
+        if coco:
             targets[:,1] = 8 # target boat in coco yolo labels
         labels += targets[:, 1].tolist()
         # Rescale target
@@ -108,6 +108,8 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(opt.weights_path))
 
     print("Compute mAP...")
+    
+    coco = opt.class_path[-len('coco.names'):]=='coco.names'
 
     precision, recall, AP, f1, ap_class = evaluate(
         model,
@@ -117,6 +119,7 @@ if __name__ == "__main__":
         nms_thres=opt.nms_thres,
         img_size=opt.img_size,
         batch_size=8,
+        coco=coco
     )
     mAP = AP.mean()
     

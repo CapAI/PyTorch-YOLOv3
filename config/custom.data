@@ -1,4 +1,5 @@
 classes= 1
-train=/media/jetze/Elements/MarineNet-45k/train.txt
-valid=/media/jetze/Elements/MarineNet-45k/valid.txt
+train=/home/jupyter/MarineNet-45k/train.txt
+valid=/home/jupyter/MarineNet-45k/valid.txt
+test=/home/jupyter/MarineNet-45k/test.txt
 names=data/custom/classes.names
