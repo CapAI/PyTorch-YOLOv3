@@ -1,0 +1,14 @@
+md5: 7952bf1da8cdcffd62b6871832bee8ca
+cmd: python resize_images.py --src /home/jupyter/PyTorch_YOLOv3/MarineNet/data --size
+  700
+deps:
+- md5: 2ede945e290530dfc58aa31d5801044e
+  path: resize_images.py
+- md5: 3ca3811f26df90e4b2b101b24e6efcd1.dir
+  path: MarineNet
+outs:
+- md5: 61640d01be3e21d412c0fbcefe790efe.dir
+  path: MarineNet-resized
+  cache: true
+  metric: false
+  persist: false
