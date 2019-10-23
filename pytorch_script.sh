@@ -4,20 +4,22 @@ cd PyTorch_YOLOv3
 conda activate torch
 
 # resize
-dvc run -d MarineNet/data/ \
--o MarineNet/data/ \
+dvc run -d resize_images.py \
+-d MarineNet \
+-o MarineNet-resized \
 -f resize.dvc \
-python resize_images.py --src /media/jupyter/PyTorch_YOLOv3/MarineNet-45k/data --size 700
+python resize_images.py --src /home/jupyter/PyTorch_YOLOv3/MarineNet/data --size 700
 
 # check if bounding boxes are not too small
 
 # split data
-dvc run -d MarineNet/data \
--o MarineNet/data/test.txt \
--o MarineNet/data/train.txt \
--o MarineNet/data/valid.txt \
+dvc run -d train_val_test_yolo.py \
+-d MarineNet-resize \
+-o test.txt \
+-o train.txt \
+-o valid.txt \
 -f split.dvc \
-python train_val_test_yolo.py
+python train_val_test_yolo.py --src /home/jupyter/PyTorch_YOLOv3/MarineNet-resized/data --nval 5000 --seed 23102019
 
 
 # PyTorch YOLOv3
@@ -37,7 +39,7 @@ python test.py \
 --weights_path yolov3_ckpt_99.pth \
 --class_path data/custom/classes.names \
 --iou_thres 0.5 \
---conf_thres 0.001 \
+--conf_thres 0.5 \
 --nms_thres 0.5 \
 --batch_size 16 \
 --n_cpu 1 
