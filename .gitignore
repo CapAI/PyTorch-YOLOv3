@@ -13,3 +13,7 @@ checkpoints
 MarineNet
 /MarineNet
 /MarineNet-resized
+/test.txt
+/train.txt
+/valid.txt
+/logs

@@ -1,0 +1,10 @@
+md5: bf249e6ee25fd238794e730eff391a69
+cmd: python test.py --set test --model_def config/yolov3-custom.cfg --data_config
+  config/custom_dvc.data --weights_path checkpoints/1571848490/yolov3_ckpt_99.pth
+  --class_path data/custom/classes.names --iou_thres 0.5 --conf_thres 0.5 --nms_thres
+  0.5 --batch_size 16 --n_cpu 7
+deps:
+- md5: 3b31c98348b8f447cb2eaacb1973b4a0
+  path: test.py
+- md5: 200a2456b64a694bf570b67ecf0356b0.dir
+  path: MarineNet-resized

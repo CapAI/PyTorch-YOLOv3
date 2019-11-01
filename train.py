@@ -43,8 +43,12 @@ if __name__ == "__main__":
     parser.add_argument("-freeze_pretrained", action='store_true', help="keep first 75 layers fixed, (re)train layers 75-106")
     opt = parser.parse_args()
     print(opt)
+    
+    parameters = vars(opt)
+    metrics = {}
 
     t = round(time.time())
+    parameters['id'] = t
     
     writer = SummaryWriter(f'Xlogs/{t}')
     logger = Logger(f"logs/{t}")
@@ -94,12 +98,13 @@ if __name__ == "__main__":
         collate_fn=dataset.collate_fn,
     )
 
-    
+    freeze_limit = 75
+    parameters['freeze_limit'] = freeze_limit
     if opt.freeze_pretrained:
         parameters = list()
         print('length of mod_list: ', len(model.module_list), type(model.module_list))
         for m, mod in enumerate(model.module_list):
-            if m < 75:
+            if m < freeze_limit:
                 for param in mod.parameters():
                     param.requires_grad_(False)
             else:
@@ -128,9 +133,14 @@ if __name__ == "__main__":
         "conf_noobj",
     ]
 
+    breaking = False
     for epoch in range(opt.epochs):
         model.train()
         start_time = time.time()
+        
+        if breaking:
+            break
+            
         for batch_i, (_, imgs, targets) in enumerate(dataloader):
             batches_done = len(dataloader) * epoch + batch_i
 
@@ -181,6 +191,8 @@ if __name__ == "__main__":
             print(log_str)
 
             model.seen += imgs.size(0)
+            
+            
 
         if epoch % opt.evaluation_interval == 0:
             print("\n---- Evaluating Model ----")
@@ -217,3 +229,24 @@ if __name__ == "__main__":
 
         if epoch % opt.checkpoint_interval == 0:
             torch.save(model.state_dict(), f"checkpoints/{t}/yolov3_ckpt_%d.pth" % epoch)
+
+    
+    metrics['val_precision'] = precision.mean()
+    metrics['val_recall'] = recall.mean()
+    metrics['val_mAP'] = AP.mean()
+    metrics['val_f1'] = f1.mean()
+    
+    model_name = opt.model_def.split('/')[-1].split('.')[0]
+    weights_name = opt.pretrained_weights.split('/')[-1]
+    weights_name = weight_name + f'_frozen_{freeze_limit}' if opt.freeze_pretrained else weight_name
+    weights_path = os.path.join('checkpoints', t, f'yolov3_ckpt_{epoch}.pth' )
+    
+    log_mlflow(experiment_name = f'train_obj_detect',
+              remoteurl='http://35.204.159.181/',
+              model_name = model_name,
+              run_name = weights_name,
+              params = parameters,
+              metrics = metrics,
+              model = weights_path,
+              dvc_path = 'train.dvc', #TODO check which dvc file to use
+              artifact_dir=f"logs/{t}")

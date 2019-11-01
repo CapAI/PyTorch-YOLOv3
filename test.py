@@ -1,16 +1,17 @@
 from __future__ import division
 
-from models import *
-from utils.utils import *
-from utils.datasets import *
-from utils.parse_config import *
-
 import os
 import sys
 import time
 import datetime
 import argparse
-import tqdm
+from tqdm import tqdm
+
+sys.path.append('..')
+
+import mlflow
+import git
+import yaml
 
 import torch
 from torch.utils.data import DataLoader
@@ -19,9 +20,12 @@ from torchvision import transforms
 from torch.autograd import Variable
 import torch.optim as optim
 
-import mlflow
-import git
-import yaml
+from models import *
+from utils.utils import *
+from utils.datasets import *
+from utils.parse_config import *
+
+from mlflow_scripts.mlflow_logging import log_mlflow
 
 def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size, coco=False):
     model.eval()
@@ -36,7 +40,7 @@ def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size
 
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
-    for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecting objects")):
+    for batch_i, (_, imgs, targets) in enumerate(tqdm(dataloader, desc="Detecting objects")):
 
         # Extract labels
 #         print('targets: \r\n', targets[:,1])
@@ -82,15 +86,17 @@ if __name__ == "__main__":
     opt = parser.parse_args()
     print(opt)
     
-    mlflow.log_params(vars(opt))
+    parameters = vars(opt)
+    metrics = {}
+#     mlflow.log_params()
     
-    repo = git.Repo(search_parent_directories=True)
-    sha = repo.head.object.hexsha
-    mlflow.log_param('git_hexsha', sha)
+#     repo = git.Repo(search_parent_directories=True)
+#     sha = repo.head.object.hexsha
+#     mlflow.log_param('git_hexsha', sha)
     
-    with open('MarineNet.dvc', 'r') as f:
-        dvc = yaml.safe_load(f)
-    mlflow.log_param('dvc_md5', dvc['md5'])
+#     with open('MarineNet.dvc', 'r') as f:
+#         dvc = yaml.safe_load(f)
+#     mlflow.log_param('dvc_md5', dvc['md5'])
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -123,22 +129,34 @@ if __name__ == "__main__":
     )
     mAP = AP.mean()
     
+    metrics['mAP'] = mAP
     
     print("Average Precisions:")
     for i, c in enumerate(ap_class):
         print(f"+ Class '{c}' ({class_names[c]}) - AP: {AP[i]}")
-        mlflow.log_metric(f'AP_{class_names[c]}', AP[i])
-        mlflow.log_metric(f'precision_{class_names[c]}', precision[i])
-        mlflow.log_metric(f'recall_{class_names[c]}', recall[i])
-        mlflow.log_metric(f'f1_{class_names[c]}', f1[i])
-        
+        metrics[f'AP_{class_names[c]}'] = AP[i]
+        metrics[f'precision_{class_names[c]}'] = precision[i]
+        metrics[f'recall_{class_names[c]}'] = recall[i]
+        metrics[f'f1_{class_names[c]}'] = f1[i] 
 
     print(f"mAP: {mAP}")
     
     print(f'precision: {precision}')
     print(f'recall: {recall}')
     
-    mlflow.log_metric('mAP', mAP)
+    weight_name = opt.weights_path.split('/')[-1]
+    def_name = opt.model_def.split('/')[-1].split('.')[0]
+    
+    log_mlflow(experiment_name = f'eval_{opt.set}',
+              remoteurl='http://35.204.159.181/',
+              model_name = def_name,
+              run_name = weight_name,
+              params = parameters,
+              metrics = metrics,
+              model = opt.weights_path,
+              dvc_path = 'train.dvc', #TODO check which dvc file to use
+              artifact_dir=None) # add examples of detections 
+    
 #     print(f'TP : {true_positives}')
 #     print(f'pred_scores: {pred_scores}')
 #     print(f'pred_labels: {pred_labels}')

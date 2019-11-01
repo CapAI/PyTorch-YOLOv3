@@ -1,0 +1,24 @@
+md5: 179d442ff92d03dcac7e5fef7398da3a
+cmd: python train_val_test_yolo.py --src /home/jupyter/PyTorch_YOLOv3/MarineNet-resized/data
+  --nval 5000 --seed 23102019
+deps:
+- md5: 51495f59d9ee85c43e9c7a2d7179c326
+  path: train_val_test_yolo.py
+- md5: 3ca3811f26df90e4b2b101b24e6efcd1.dir
+  path: MarineNet
+outs:
+- md5: 2d59cbf589905afd6a4261f7897ec814
+  path: test.txt
+  cache: true
+  metric: false
+  persist: false
+- md5: b5c1e83ccfc3d879a5ed982d1ef5bf9c
+  path: train.txt
+  cache: true
+  metric: false
+  persist: false
+- md5: 2df450d28ca75de0f40a02d0b899064e
+  path: valid.txt
+  cache: true
+  metric: false
+  persist: false
